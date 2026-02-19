@@ -5,7 +5,7 @@ import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
 type Message = { role: "human" | "ai"; content: string }
-const BACKEND_URL = process.env.BACKEND_URL
+const BACKEND_API_BASE = "/api/backend"
 
 const mdComponentsHuman = {
   p: ({ children }: any) => <p className="mb-1 last:mb-0">{children}</p>,
@@ -48,7 +48,7 @@ export default function Chat({ websiteEntryId, websiteUrl, onAiMessage }: { webs
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/messages?website_entry_id=${websiteEntryId}`, { credentials: "include" })
+    fetch(`${BACKEND_API_BASE}/messages?website_entry_id=${websiteEntryId}`, { credentials: "include" })
       .then(res => res.json())
       .then(setMessages)
   }, [websiteEntryId])
@@ -61,7 +61,7 @@ export default function Chat({ websiteEntryId, websiteUrl, onAiMessage }: { webs
     if (!content.trim() || loading) return
     setMessages(prev => [...prev, { role: "human", content }])
     setLoading(true)
-    fetch(`${BACKEND_URL}/messages/send?website_entry_id=${websiteEntryId}`, {
+    fetch(`${BACKEND_API_BASE}/messages/send?website_entry_id=${websiteEntryId}`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },

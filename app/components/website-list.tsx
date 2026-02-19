@@ -5,13 +5,13 @@ import WebsiteEntry from "./website-entry"
 import AddEntryForm from "./add-entry-form"
 
 type Entry = { websiteEntryId: number; websiteUrl: string; repoName: string; diagnosticCount: number }
-const BACKEND_URL = process.env.BACKEND_URL
+const BACKEND_API_BASE = "/api/backend"
 
 export default function WebsiteList({ selectedWebsiteEntryId, onSelect, refreshKey }: { selectedWebsiteEntryId: number | null; onSelect: (websiteEntryId: number, websiteUrl: string) => void; refreshKey: number }) {
   const [entries, setEntries] = useState<Entry[]>([])
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/website-entries`, { credentials: "include" })
+    fetch(`${BACKEND_API_BASE}/website-entries`, { credentials: "include" })
       .then(res => res.json())
       .then(setEntries)
   }, [refreshKey])

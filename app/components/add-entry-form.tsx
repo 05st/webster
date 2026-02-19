@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Button from "./button"
 import Card from "./card";
 
-const BACKEND_URL = process.env.BACKEND_URL
+const BACKEND_API_BASE = "/api/backend"
 
 export default function AddEntryForm({ onAdd }: { onAdd: (websiteEntryId: number, websiteUrl: string, repoName: string) => void }) {
   const [repos, setRepos] = useState<string[]>([])
@@ -13,7 +13,7 @@ export default function AddEntryForm({ onAdd }: { onAdd: (websiteEntryId: number
   const [error, setError] = useState("")
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/github/repos`, { credentials: "include" })
+    fetch(`${BACKEND_API_BASE}/github/repos`, { credentials: "include" })
       .then(res => res.json())
       .then(setRepos)
   }, [])
@@ -30,7 +30,7 @@ export default function AddEntryForm({ onAdd }: { onAdd: (websiteEntryId: number
     }
     setError("")
 
-    fetch(`${BACKEND_URL}/website-entries/add?website_url=${url}&repo_name=${repo}`, {
+    fetch(`${BACKEND_API_BASE}/website-entries/add?website_url=${url}&repo_name=${repo}`, {
       method: "POST",
       credentials: "include",
     })

@@ -4,18 +4,14 @@ import { useEffect, useState } from "react"
 import Login from "./login"
 import Dashboard from "./dashboard"
 
-const BACKEND_URL = process.env.BACKEND_URL
+const BACKEND_API_BASE = "/api/backend"
 type AuthState = "loading" | "authenticated" | "unauthenticated"
 
 export default function Home() {
-  const [authState, setAuthState] = useState<AuthState>(BACKEND_URL ? "loading" : "unauthenticated")
+  const [authState, setAuthState] = useState<AuthState>("loading")
 
   useEffect(() => {
-    if (!BACKEND_URL) {
-      return
-    }
-
-    fetch(`${BACKEND_URL}/me`, { credentials: "include" })
+    fetch(`${BACKEND_API_BASE}/me`, { credentials: "include" })
       .then(res => setAuthState(res.ok ? "authenticated" : "unauthenticated"))
       .catch(() => setAuthState("unauthenticated"))
   }, [])

@@ -4,19 +4,19 @@ import { useEffect, useState } from "react"
 import DiagnosticCard from "./diagnostic-card"
 
 type Diagnostic = { diagnosticId: number; shortDesc: string; fullDesc: string; severity: string }
-const BACKEND_URL = process.env.BACKEND_URL
+const BACKEND_API_BASE = "/api/backend"
 
 export default function DiagnosticList({ websiteEntryId, refreshKey, onDiagnosticChange }: { websiteEntryId: number; refreshKey: number; onDiagnosticChange: () => void }) {
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([])
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/diagnostics?website_entry_id=${websiteEntryId}`, { credentials: "include" })
+    fetch(`${BACKEND_API_BASE}/diagnostics?website_entry_id=${websiteEntryId}`, { credentials: "include" })
       .then(res => res.json())
       .then(setDiagnostics)
   }, [websiteEntryId, refreshKey])
 
   function handleDismiss(diagnosticId: number) {
-    fetch(`${BACKEND_URL}/diagnostics/${diagnosticId}`, {
+    fetch(`${BACKEND_API_BASE}/diagnostics/${diagnosticId}`, {
       method: "DELETE",
       credentials: "include",
     })
