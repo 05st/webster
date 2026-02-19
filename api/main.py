@@ -96,7 +96,7 @@ def integrations_github_oauth2_callback(code: str) -> RedirectResponse:
         user_id = user.id
 
     session_token = create_session_token(user_id)
-    redirect_url = f"{FRONTEND_ORIGIN}/auth/callback"
+    redirect_url = f"{FRONTEND_ORIGIN}/"
     redirect = RedirectResponse(redirect_url)
     frontend_is_https = FRONTEND_ORIGIN.startswith("https://")
     redirect.set_cookie(
