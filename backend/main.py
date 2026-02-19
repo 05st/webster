@@ -181,17 +181,24 @@ async def send_message(request: Request, website_entry_id: int, body: SendMessag
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
 
+        website_url = entry.website_url
+        repo_name = entry.repo_name
+        github_token = user.github_token
+
         human_msg = Message(website_entry_id=website_entry_id, role="human", content=body.content)
         session.add(human_msg)
         session.commit()
 
-        msgs = session.exec(select(Message).where(Message.website_entry_id == website_entry_id)).all()
+        msgs = session.exec(
+            select(Message).where(Message.website_entry_id == website_entry_id).order_by(Message.id)
+        ).all()
+        message_history = [(msg.role, msg.content) for msg in msgs]
 
     messages = [
-        AIMessage(msg.content) if msg.role == "ai" else HumanMessage(msg.content)
-        for msg in msgs
+        AIMessage(content) if role == "ai" else HumanMessage(content)
+        for role, content in message_history
     ]
-    reply_content = await run_agent(messages, entry.website_url, entry.repo_name, engine, website_entry_id, user.github_token)
+    reply_content = await run_agent(messages, website_url, repo_name, engine, website_entry_id, github_token)
 
     with Session(engine) as session:
         ai_msg = Message(website_entry_id=website_entry_id, role="ai", content=reply_content)
