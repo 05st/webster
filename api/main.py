@@ -54,9 +54,9 @@ def integrations_github_oauth2_callback(code: str) -> RedirectResponse:
         session.refresh(user)
         user_id = user.id
 
-    redirect = RedirectResponse(FRONTEND_URL)
-    redirect.set_cookie("user_id", str(user_id))
-    return redirect
+    frontend_base = (FRONTEND_URL or "").rstrip("/")
+    redirect_url = f"{frontend_base}/auth/callback?user_id={user_id}"
+    return RedirectResponse(redirect_url)
 
 @api.get("/github/repos")
 def get_github_repos(user_id: int) -> list[str]:
