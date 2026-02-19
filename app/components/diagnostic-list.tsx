@@ -10,13 +10,16 @@ export default function DiagnosticList({ websiteEntryId, refreshKey, onDiagnosti
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([])
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/diagnostics?website_entry_id=${websiteEntryId}`)
+    fetch(`${BACKEND_URL}/diagnostics?website_entry_id=${websiteEntryId}`, { credentials: "include" })
       .then(res => res.json())
       .then(setDiagnostics)
   }, [websiteEntryId, refreshKey])
 
   function handleDismiss(diagnosticId: number) {
-    fetch(`${BACKEND_URL}/diagnostics/${diagnosticId}`, { method: "DELETE" })
+    fetch(`${BACKEND_URL}/diagnostics/${diagnosticId}`, {
+      method: "DELETE",
+      credentials: "include",
+    })
     setDiagnostics(prev => prev.filter(i => i.diagnosticId !== diagnosticId))
     onDiagnosticChange()
   }

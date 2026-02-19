@@ -5,7 +5,7 @@ import WebsiteList from "./components/website-list"
 import Chat from "./components/chat"
 import DiagnosticList from "./components/diagnostic-list"
 
-export default function Dashboard({ user_id }: { user_id: string }) {
+export default function Dashboard() {
   const [selected, setSelected] = useState<{ websiteEntryId: number; websiteUrl: string } | null>(null)
   const [diagnosticRefreshKey, setDiagnosticRefreshKey] = useState(0)
   const [websiteListRefreshKey, setWebsiteListRefreshKey] = useState(0)
@@ -22,7 +22,7 @@ export default function Dashboard({ user_id }: { user_id: string }) {
   return (
     <div className="w-screen h-screen grid grid-cols-4">
       <div className="p-4 flex flex-col gap-2 overflow-y-auto border-r border-slate-200">
-        <WebsiteList user_id={user_id} selectedWebsiteEntryId={selected?.websiteEntryId ?? null} onSelect={(websiteEntryId, websiteUrl) => setSelected({ websiteEntryId, websiteUrl })} refreshKey={websiteListRefreshKey} />
+        <WebsiteList selectedWebsiteEntryId={selected?.websiteEntryId ?? null} onSelect={(websiteEntryId, websiteUrl) => setSelected({ websiteEntryId, websiteUrl })} refreshKey={websiteListRefreshKey} />
       </div>
       <div className="mt-4 mb-4 col-span-2 min-h-0 flex flex-col">
         {selected !== null ? (

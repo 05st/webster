@@ -44,3 +44,7 @@ class DiagnosticResponse(BaseModel):
     shortDesc: str
     fullDesc: str
     severity: str
+
+class MeResponse(BaseModel):
+    userId: int
+    githubId: int

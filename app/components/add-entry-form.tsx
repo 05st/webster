@@ -6,17 +6,17 @@ import Card from "./card";
 
 const BACKEND_URL = process.env.BACKEND_URL
 
-export default function AddEntryForm({ user_id, onAdd }: { user_id: string; onAdd: (websiteEntryId: number, websiteUrl: string, repoName: string) => void }) {
+export default function AddEntryForm({ onAdd }: { onAdd: (websiteEntryId: number, websiteUrl: string, repoName: string) => void }) {
   const [repos, setRepos] = useState<string[]>([])
   const [url, setUrl] = useState("")
   const [repo, setRepo] = useState("")
   const [error, setError] = useState("")
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/github/repos?user_id=${user_id}`)
+    fetch(`${BACKEND_URL}/github/repos`, { credentials: "include" })
       .then(res => res.json())
       .then(setRepos)
-  }, [user_id])
+  }, [])
 
   function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -30,7 +30,10 @@ export default function AddEntryForm({ user_id, onAdd }: { user_id: string; onAd
     }
     setError("")
 
-    fetch(`${BACKEND_URL}/website-entries/add?user_id=${user_id}&website_url=${url}&repo_name=${repo}`, { method: "POST" })
+    fetch(`${BACKEND_URL}/website-entries/add?website_url=${url}&repo_name=${repo}`, {
+      method: "POST",
+      credentials: "include",
+    })
       .then(res => res.json())
       .then((websiteEntryId: number) => onAdd(websiteEntryId, url, repo))
     

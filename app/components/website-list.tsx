@@ -7,14 +7,14 @@ import AddEntryForm from "./add-entry-form"
 type Entry = { websiteEntryId: number; websiteUrl: string; repoName: string; diagnosticCount: number }
 const BACKEND_URL = process.env.BACKEND_URL
 
-export default function WebsiteList({ user_id, selectedWebsiteEntryId, onSelect, refreshKey }: { user_id: string; selectedWebsiteEntryId: number | null; onSelect: (websiteEntryId: number, websiteUrl: string) => void; refreshKey: number }) {
+export default function WebsiteList({ selectedWebsiteEntryId, onSelect, refreshKey }: { selectedWebsiteEntryId: number | null; onSelect: (websiteEntryId: number, websiteUrl: string) => void; refreshKey: number }) {
   const [entries, setEntries] = useState<Entry[]>([])
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/website-entries?user_id=${user_id}`)
+    fetch(`${BACKEND_URL}/website-entries`, { credentials: "include" })
       .then(res => res.json())
       .then(setEntries)
-  }, [user_id, refreshKey])
+  }, [refreshKey])
 
   function handleAdd(websiteEntryId: number, websiteUrl: string, repoName: string) {
     setEntries(prev => [...prev, { websiteEntryId, websiteUrl, repoName, diagnosticCount: 0 }])
@@ -33,7 +33,7 @@ export default function WebsiteList({ user_id, selectedWebsiteEntryId, onSelect,
           selected={entry.websiteEntryId === selectedWebsiteEntryId}
         />
       ))}
-      <AddEntryForm user_id={user_id} onAdd={handleAdd} />
+      <AddEntryForm onAdd={handleAdd} />
     </>
   )
 }

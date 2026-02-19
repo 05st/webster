@@ -8,7 +8,7 @@ image = (
     .pip_install(
         "fastapi[standard]", "sqlmodel", "requests", "python-dotenv",
         "langchain", "langchain-community", "langchain-openai",
-        "langchain-mcp-adapters", "langgraph", "playwright"
+        "langchain-mcp-adapters", "langgraph", "playwright", "pyjwt"
     )
     .run_commands("playwright install --with-deps chromium")
     .add_local_dir(str(API_DIR), remote_path="/root/api")

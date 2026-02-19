@@ -48,7 +48,7 @@ export default function Chat({ websiteEntryId, websiteUrl, onAiMessage }: { webs
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    fetch(`${BACKEND_URL}/messages?website_entry_id=${websiteEntryId}`)
+    fetch(`${BACKEND_URL}/messages?website_entry_id=${websiteEntryId}`, { credentials: "include" })
       .then(res => res.json())
       .then(setMessages)
   }, [websiteEntryId])
@@ -63,6 +63,7 @@ export default function Chat({ websiteEntryId, websiteUrl, onAiMessage }: { webs
     setLoading(true)
     fetch(`${BACKEND_URL}/messages/send?website_entry_id=${websiteEntryId}`, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content }),
     })

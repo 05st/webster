@@ -1,6 +1,6 @@
 import requests
 from typing import Callable
-from playwright.async_api import async_playwright
+from playwright.async_api import Page, async_playwright
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_community.tools import BaseTool, tool
 from sqlalchemy import Engine
@@ -11,6 +11,8 @@ from models import *
 async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str) -> tuple[list[BaseTool], Callable]:
     pw = await async_playwright().start()
     browser = await pw.chromium.launch()
+    browser_context = await browser.new_context()
+    interactive_page: Page | None = None
 
     mcp = MultiServerMCPClient({
         "github": {
@@ -21,6 +23,148 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str)
     })
 
     github_tools = await mcp.get_tools()
+
+    def compact_visible_text(text: str, max_chars: int = 8000) -> str:
+        lines = [line for line in text.splitlines() if line.strip()]
+        return "\n".join(lines)[:max_chars]
+
+    async def ensure_interactive_page() -> Page:
+        nonlocal interactive_page
+        if interactive_page is None or interactive_page.is_closed():
+            interactive_page = await browser_context.new_page()
+        return interactive_page
+
+    async def settle_page(page: Page, timeout_ms: int = 8000) -> None:
+        try:
+            await page.wait_for_load_state("networkidle", timeout=timeout_ms)
+        except Exception:
+            # Some pages never reach full network idle because of background requests.
+            pass
+
+    @tool
+    async def open_page(url: str) -> str:
+        """
+        Open a URL in an interactive browser tab and keep that tab alive for follow-up actions.
+        Use this before clicking or typing.
+        Parameters:
+            url: Full URL to open.
+        Returns:
+            The loaded URL and page title, or an error message.
+        """
+        page = await ensure_interactive_page()
+        try:
+            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            await settle_page(page)
+            title = await page.title()
+            return f"Opened page.\nURL: {page.url}\nTitle: {title or 'missing'}"
+        except Exception as e:
+            return f"Error opening {url}: {e}"
+
+    @tool
+    async def click_element(selector: str) -> str:
+        """
+        Click an element on the currently open interactive page.
+        Use CSS selectors (e.g. 'button[type=submit]', 'a[href=\"/pricing\"]', '[data-testid=\"menu\"]').
+        Parameters:
+            selector: CSS selector for the element to click.
+        Returns:
+            Confirmation and the current URL, or an error message.
+        """
+        page = await ensure_interactive_page()
+        try:
+            locator = page.locator(selector).first
+            await locator.wait_for(state="visible", timeout=10000)
+            await locator.click(timeout=10000)
+            await settle_page(page, timeout_ms=6000)
+            return f"Clicked '{selector}'.\nCurrent URL: {page.url}"
+        except Exception as e:
+            return f"Error clicking '{selector}': {e}"
+
+    @tool
+    async def type_into(selector: str, text: str, clear_first: bool = True, press_enter: bool = False) -> str:
+        """
+        Type text into an input-like element on the currently open interactive page.
+        Parameters:
+            selector: CSS selector for the target field.
+            text: Text to input.
+            clear_first: If true, replace existing content; otherwise append via typing.
+            press_enter: If true, press Enter after typing.
+        Returns:
+            Confirmation message, or an error message.
+        """
+        page = await ensure_interactive_page()
+        try:
+            locator = page.locator(selector).first
+            await locator.wait_for(state="visible", timeout=10000)
+            await locator.click(timeout=10000)
+            if clear_first:
+                await locator.fill(text, timeout=10000)
+            else:
+                await locator.type(text, delay=20, timeout=10000)
+            if press_enter:
+                await locator.press("Enter", timeout=10000)
+                await settle_page(page, timeout_ms=6000)
+            return f"Typed into '{selector}'."
+        except Exception as e:
+            return f"Error typing into '{selector}': {e}"
+
+    @tool
+    async def press_key(key: str) -> str:
+        """
+        Press a keyboard key on the currently open interactive page.
+        Parameters:
+            key: Playwright key name (e.g. 'Enter', 'Tab', 'Escape', 'ArrowDown').
+        Returns:
+            Confirmation and current URL, or an error message.
+        """
+        page = await ensure_interactive_page()
+        try:
+            await page.keyboard.press(key)
+            await settle_page(page, timeout_ms=4000)
+            return f"Pressed key '{key}'.\nCurrent URL: {page.url}"
+        except Exception as e:
+            return f"Error pressing key '{key}': {e}"
+
+    @tool
+    async def wait_for_selector(selector: str, timeout_ms: int = 10000) -> str:
+        """
+        Wait for a selector to become visible on the currently open interactive page.
+        Parameters:
+            selector: CSS selector to wait for.
+            timeout_ms: Max wait time in milliseconds.
+        Returns:
+            Confirmation message, or an error message.
+        """
+        page = await ensure_interactive_page()
+        try:
+            await page.locator(selector).first.wait_for(state="visible", timeout=timeout_ms)
+            return f"Selector became visible: '{selector}'"
+        except Exception as e:
+            return f"Error waiting for selector '{selector}': {e}"
+
+    @tool
+    async def get_current_page_text(max_chars: int = 8000) -> str:
+        """
+        Read visible body text from the currently open interactive page.
+        Parameters:
+            max_chars: Maximum number of characters to return.
+        Returns:
+            Visible page text, or an error message.
+        """
+        page = await ensure_interactive_page()
+        try:
+            text = await page.inner_text("body")
+            return compact_visible_text(text, max_chars=max_chars)
+        except Exception as e:
+            return f"Error reading current page text: {e}"
+
+    @tool
+    async def get_current_page_url() -> str:
+        """
+        Return the URL of the currently open interactive page.
+        """
+        page = await ensure_interactive_page()
+        return page.url or "No URL loaded yet."
 
     @tool
     async def fetch_page(url: str) -> str:
@@ -33,31 +177,31 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str)
         Returns:
             The visible text content of the page, or an error message.
         """
-        page = await browser.new_page()
+        page = await browser_context.new_page()
         try:
             await page.goto(url, wait_until="networkidle", timeout=30000)
             text = await page.inner_text("body")
-            lines = [l for l in text.splitlines() if l.strip()]
-            return "\n".join(lines)[:8000]
+            return compact_visible_text(text)
         except Exception as e:
             return f"Error fetching {url}: {e}"
         finally:
             await page.close()
 
     @tool
-    async def get_page_metadata(url: str) -> str:
+    async def get_page_metadata(url: str = "") -> str:
         """
-        Fetch a web page and return its SEO metadata: title, meta description,
-        Open Graph tags, canonical URL, and heading structure.
+        Return SEO metadata (title, meta description, Open Graph tags, canonical URL, headings).
         Uses a real browser, so dynamically injected meta tags are included.
         Parameters:
-            url: The full URL to inspect
+            url: Optional URL to open first. If omitted, inspect the current interactive page.
         Returns:
             A summary of the page's metadata, or an error message.
         """
-        page = await browser.new_page()
+        page = await ensure_interactive_page()
         try:
-            await page.goto(url, wait_until="networkidle", timeout=30000)
+            if url:
+                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                await settle_page(page)
 
             title = await page.title()
             desc = await page.evaluate("document.querySelector('meta[name=\"description\"]')?.content ?? null")
@@ -83,9 +227,8 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str)
 
             return "\n".join(parts)
         except Exception as e:
-            return f"Error fetching metadata for {url}: {e}"
-        finally:
-            await page.close()
+            target = url or "current page"
+            return f"Error fetching metadata for {target}: {e}"
 
     @tool
     def submit_diagnostic(short_desc: str, full_desc: str, severity: str = "warning") -> str:
@@ -114,6 +257,9 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str)
             return f"Failed to create diagnostic: {e}"
 
     async def cleanup():
+        if interactive_page is not None and not interactive_page.is_closed():
+            await interactive_page.close()
+        await browser_context.close()
         await browser.close()
         await pw.stop()
 
@@ -160,4 +306,16 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str)
         except Exception as e:
             return f"Error running PageSpeed audit for {url}: {e}"
 
-    return [fetch_page, get_page_metadata, get_page_speed, submit_diagnostic] + github_tools, cleanup
+    return [
+        open_page,
+        click_element,
+        type_into,
+        press_key,
+        wait_for_selector,
+        get_current_page_text,
+        get_current_page_url,
+        fetch_page,
+        get_page_metadata,
+        get_page_speed,
+        submit_diagnostic,
+    ] + github_tools, cleanup
