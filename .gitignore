@@ -41,5 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 # python
+.venv
 api/__pycache__
 api/*.db

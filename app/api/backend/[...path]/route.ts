@@ -10,8 +10,21 @@ async function proxy(request: NextRequest, path: string[]) {
     return Response.json({ error: "BACKEND_URL is not configured" }, { status: 500 })
   }
 
-  const cleanBase = BACKEND_URL.endsWith("/") ? BACKEND_URL.slice(0, -1) : BACKEND_URL
-  const targetUrl = `${cleanBase}/${path.join("/")}${request.nextUrl.search}`
+  let backendBase: URL
+  try {
+    backendBase = new URL(BACKEND_URL)
+  } catch {
+    return Response.json({ error: "BACKEND_URL is invalid" }, { status: 500 })
+  }
+
+  if (backendBase.pathname !== "/" && backendBase.pathname !== "") {
+    return Response.json(
+      { error: "BACKEND_URL must be domain root only (no path), e.g. https://st-xxxx--api.modal.run" },
+      { status: 500 }
+    )
+  }
+
+  const targetUrl = new URL(`${path.join("/")}${request.nextUrl.search}`, backendBase)
 
   const headers = new Headers(request.headers)
   headers.delete("host")
@@ -27,10 +40,13 @@ async function proxy(request: NextRequest, path: string[]) {
     redirect: "manual",
   })
 
+  const responseHeaders = new Headers(backendResponse.headers)
+  responseHeaders.set("x-webster-proxy-target", targetUrl.toString())
+
   return new Response(backendResponse.body, {
     status: backendResponse.status,
     statusText: backendResponse.statusText,
-    headers: backendResponse.headers,
+    headers: responseHeaders,
   })
 }
 
