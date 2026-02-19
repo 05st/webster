@@ -41,6 +41,11 @@ async function proxy(request: NextRequest, path: string[]) {
   })
 
   const responseHeaders = new Headers(backendResponse.headers)
+  // Node fetch may transparently decode upstream compressed responses.
+  // Remove encoding/length headers so the browser does not try to decode again.
+  responseHeaders.delete("content-encoding")
+  responseHeaders.delete("content-length")
+  responseHeaders.delete("transfer-encoding")
   responseHeaders.set("x-webster-proxy-target", targetUrl.toString())
 
   return new Response(backendResponse.body, {
