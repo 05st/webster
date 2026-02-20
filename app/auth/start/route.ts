@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
   const githubUrl = new URL("https://github.com/login/oauth/authorize")
   githubUrl.searchParams.set("client_id", githubClientId)
   githubUrl.searchParams.set("redirect_uri", redirectUri)
+  githubUrl.searchParams.set("scope", "repo")
 
   return NextResponse.redirect(githubUrl)
 }
