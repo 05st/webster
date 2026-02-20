@@ -160,9 +160,9 @@ function Chat({ websiteEntryId, websiteUrl, onAiMessage }, ref) {
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 pr-2">
         {messages.map((msg, i) => (
-          <div key={i} className={`flex flex-col gap-0.5 ${msg.role === "human" ? "items-end ml-8" : "items-start mr-8"}`}>
+          <div key={i} className={`flex flex-col gap-0.5 ${msg.role === "human" ? "items-end ml-8 mt-2 mb-2" : "items-start ml-2 mr-8"}`}>
             {msg.isFixAction && (
-              <div className={`flex items-center gap-1 text-xs text-amber-500 ${msg.role === "human" ? "mr-1" : "ml-3"}`}>
+              <div className={`flex items-center gap-1 text-xs text-amber-500 ${msg.role === "human" ? "mr-1" : "ml-2"}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/>
                 </svg>

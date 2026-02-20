@@ -1,3 +1,4 @@
+import base64
 import logging
 import time
 import requests
@@ -22,7 +23,7 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str,
 
     mcp = MultiServerMCPClient({
         "github": {
-            "url": f"https://api.githubcopilot.com/mcp/{'' if is_fix_action else 'readonly'}",
+            "url": "https://api.githubcopilot.com/mcp/readonly",
             "transport": "streamable_http",
             "headers": {"Authorization": f"Bearer {github_token}"},
         }
@@ -431,6 +432,101 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str,
         logger.info("Cleanup complete for website_entry_id=%s", website_entry_id)
 
     @tool
+    def gh_create_branch(repo: str, branch: str, base_branch: str = "main") -> str:
+        """
+        Create a new branch in a GitHub repository.
+        Parameters:
+            repo: Repository in 'owner/repo' format.
+            branch: Name for the new branch.
+            base_branch: Branch to branch off from (default: 'main').
+        Returns:
+            Confirmation message or error.
+        """
+        logger.info("Tool gh_create_branch start repo=%s branch=%s base=%s", repo, branch, base_branch)
+        try:
+            headers = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github+json"}
+            ref_resp = requests.get(f"https://api.github.com/repos/{repo}/git/ref/heads/{base_branch}", headers=headers, timeout=15)
+            ref_resp.raise_for_status()
+            sha = ref_resp.json()["object"]["sha"]
+            create_resp = requests.post(
+                f"https://api.github.com/repos/{repo}/git/refs",
+                headers=headers,
+                json={"ref": f"refs/heads/{branch}", "sha": sha},
+                timeout=15,
+            )
+            create_resp.raise_for_status()
+            logger.info("Tool gh_create_branch success repo=%s branch=%s", repo, branch)
+            return f"Branch '{branch}' created from '{base_branch}' in {repo}."
+        except Exception as e:
+            logger.exception("Tool gh_create_branch failed repo=%s branch=%s", repo, branch)
+            return f"Error creating branch '{branch}' in {repo}: {e}"
+
+    @tool
+    def gh_create_or_update_file(repo: str, path: str, message: str, content: str, branch: str, sha: str = "") -> str:
+        """
+        Create or update a file in a GitHub repository.
+        Parameters:
+            repo: Repository in 'owner/repo' format.
+            path: File path within the repository (e.g. 'src/index.html').
+            message: Commit message.
+            content: New file content (plain text, not base64).
+            branch: Branch to commit to.
+            sha: Current file SHA (required when updating an existing file; omit when creating a new file).
+        Returns:
+            Confirmation message with commit SHA, or an error.
+        """
+        if branch in ("main", "master"):
+            return "Error: committing directly to 'main' or 'master' is not allowed. Create a feature branch first."
+        logger.info("Tool gh_create_or_update_file start repo=%s path=%s branch=%s", repo, path, branch)
+        try:
+            headers = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github+json"}
+            body: dict = {
+                "message": message,
+                "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
+                "branch": branch,
+            }
+            if sha:
+                body["sha"] = sha
+            resp = requests.put(f"https://api.github.com/repos/{repo}/contents/{path}", headers=headers, json=body, timeout=15)
+            resp.raise_for_status()
+            commit_sha = resp.json()["commit"]["sha"]
+            logger.info("Tool gh_create_or_update_file success repo=%s path=%s commit=%s", repo, path, commit_sha)
+            return f"File '{path}' committed to branch '{branch}' in {repo}. Commit: {commit_sha}"
+        except Exception as e:
+            logger.exception("Tool gh_create_or_update_file failed repo=%s path=%s", repo, path)
+            return f"Error committing file '{path}' in {repo}: {e}"
+
+    @tool
+    def gh_create_pull_request(repo: str, title: str, body: str, head: str, base: str = "main") -> str:
+        """
+        Open a pull request in a GitHub repository.
+        Parameters:
+            repo: Repository in 'owner/repo' format.
+            title: PR title.
+            body: PR description.
+            head: Branch with the changes.
+            base: Branch to merge into (default: 'main').
+        Returns:
+            PR URL or an error message.
+        """
+        logger.info("Tool gh_create_pull_request start repo=%s head=%s base=%s", repo, head, base)
+        try:
+            headers = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github+json"}
+            resp = requests.post(
+                f"https://api.github.com/repos/{repo}/pulls",
+                headers=headers,
+                json={"title": title, "body": body, "head": head, "base": base},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            pr_url = resp.json()["html_url"]
+            logger.info("Tool gh_create_pull_request success repo=%s pr_url=%s", repo, pr_url)
+            return f"Pull request created: {pr_url}"
+        except Exception as e:
+            logger.exception("Tool gh_create_pull_request failed repo=%s", repo)
+            return f"Error creating pull request in {repo}: {e}"
+
+    @tool
     def get_page_speed(url: str) -> str:
         """
         Run a Lighthouse performance audit on a URL using Google PageSpeed Insights.
@@ -488,6 +584,8 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str,
             )
             return f"Error running PageSpeed audit for {url}: {e}"
 
+    write_tools = [gh_create_branch, gh_create_or_update_file, gh_create_pull_request] if is_fix_action else []
+
     return [
         open_page,
         click_element,
@@ -500,4 +598,4 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str,
         get_page_metadata,
         get_page_speed,
         submit_diagnostic,
-    ] + github_tools, cleanup
+    ] + github_tools + write_tools, cleanup
