@@ -17,22 +17,28 @@ class AgentState(TypedDict):
     website_url: str
     repo_name: str
     conclusion: str
+    is_fix_action: bool
 
 analyze_prompt = ChatPromptTemplate([
     (
         "system",
         """
-        You are a friendly website quality assurance analyzer agent. Your job is to use your tools to visit
+        You are a friendly website quality assurance analyzer agent named Webster. Your job is to use your tools to visit
         the website URL provided and analyze it for issues, suggestions, and possible improvements.
         You are also able to view the GitHub repository for the website and read the website's source.
         You are provided the conversation history including past messages from this quality assurance
         agent and past messages from the human. The human's query should be the latest human message.
-        The query could be a command t analyze the website, or some aspect of the website. It could
+        The query could be a command to analyze the website, or some aspect of the website. It could
         also be a question that the human has about their website. You do not do anything other than
         analyze the website, submit diagnostics, and answer questions related to the website.
         Don't submit diagnostics without a good reason. If you are just speculating, without being
         very confident, then don't submit a diagnostic.
-        Your name is Webster.
+
+        If `is_fix_action` is true, then you will not be able to submit new diagnostics and instead
+        you should fix the diagnostic at hand, described in the human message. You should then open a
+        PR for the provided GitHub repository with the changes, and a proper description of the
+        issue and the changes.
+
         Think in steps.
         You have browser interaction tools. For dynamic UIs, open a page, click elements, type into fields,
         wait for selectors, and then read the resulting page text/metadata before concluding.
@@ -50,6 +56,8 @@ analyze_prompt = ChatPromptTemplate([
 
         When accessing the GitHub repository, always list the directory structure first
         before attempting to read specific files, so you know which paths exist.
+
+        `is_fix_action`: {is_fix_action}
         """
     ),
     MessagesPlaceholder("messages")
@@ -77,8 +85,8 @@ conclude_prompt = ChatPromptTemplate([
     MessagesPlaceholder("messages")
 ])
 
-async def run_agent(messages: list[BaseMessage], website_url: str, repo_name: str, db_engine: Engine, website_entry_id: int, github_token: str):
-    tools, cleanup = await get_tools(db_engine, website_entry_id, github_token)
+async def run_agent(messages: list[BaseMessage], website_url: str, repo_name: str, db_engine: Engine, website_entry_id: int, github_token: str, is_fix_action: bool):
+    tools, cleanup = await get_tools(db_engine, website_entry_id, github_token, is_fix_action)
 
     llm_analyze = ChatOpenAI(model="gpt-5.2").bind_tools(tools)
     llm_conclude = ChatOpenAI(model="gpt-5.2")
@@ -88,6 +96,7 @@ async def run_agent(messages: list[BaseMessage], website_url: str, repo_name: st
             "messages": state["messages"],
             "website_url": state["website_url"],
             "repo_name": state["repo_name"],
+            "is_fix_action": state["is_fix_action"],
         })
         return {"messages": response}
 
@@ -120,6 +129,7 @@ async def run_agent(messages: list[BaseMessage], website_url: str, repo_name: st
                 "messages": messages,
                 "website_url": website_url,
                 "repo_name": repo_name,
+                "is_fix_action": is_fix_action
             },
             version="v2",
         ):

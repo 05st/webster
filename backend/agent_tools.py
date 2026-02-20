@@ -12,7 +12,7 @@ from models import *
 
 logger = logging.getLogger(__name__)
 
-async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str) -> tuple[list[BaseTool], Callable]:
+async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str, is_fix_action: bool) -> tuple[list[BaseTool], Callable]:
     logger.info("Initializing agent tools for website_entry_id=%s", website_entry_id)
 
     pw = await async_playwright().start()
@@ -22,7 +22,7 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str)
 
     mcp = MultiServerMCPClient({
         "github": {
-            "url": "https://api.githubcopilot.com/mcp/readonly",
+            "url": f"https://api.githubcopilot.com/mcp/{'' if is_fix_action else 'readonly'}",
             "transport": "streamable_http",
             "headers": {"Authorization": f"Bearer {github_token}"},
         }

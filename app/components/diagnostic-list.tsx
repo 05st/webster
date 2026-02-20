@@ -6,7 +6,7 @@ import DiagnosticCard from "./diagnostic-card"
 type Diagnostic = { diagnosticId: number; shortDesc: string; fullDesc: string; severity: string }
 const BACKEND_API_BASE = "/api/backend"
 
-export default function DiagnosticList({ websiteEntryId, refreshKey, onDiagnosticChange }: { websiteEntryId: number; refreshKey: number; onDiagnosticChange: () => void }) {
+export default function DiagnosticList({ websiteEntryId, refreshKey, onDiagnosticChange, onFix }: { websiteEntryId: number; refreshKey: number; onDiagnosticChange: () => void; onFix: (shortDesc: string, fullDesc: string) => void }) {
   const [diagnostics, setDiagnostics] = useState<Diagnostic[]>([])
 
   useEffect(() => {
@@ -24,8 +24,9 @@ export default function DiagnosticList({ websiteEntryId, refreshKey, onDiagnosti
     onDiagnosticChange()
   }
 
-  function handleFix(_diagnosticId: number) {
-    // todo
+  function handleFix(diagnosticId: number) {
+    const d = diagnostics.find(i => i.diagnosticId === diagnosticId)
+    if (d) onFix(d.shortDesc, d.fullDesc)
   }
 
   return (

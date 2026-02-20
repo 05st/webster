@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import WebsiteList from "./components/website-list"
-import Chat from "./components/chat"
+import Chat, { type ChatHandle } from "./components/chat"
 import DiagnosticList from "./components/diagnostic-list"
 
 export default function Dashboard() {
@@ -10,6 +10,7 @@ export default function Dashboard() {
   const [visitedEntries, setVisitedEntries] = useState<{ websiteEntryId: number; websiteUrl: string }[]>([])
   const [diagnosticRefreshKey, setDiagnosticRefreshKey] = useState(0)
   const [websiteListRefreshKey, setWebsiteListRefreshKey] = useState(0)
+  const chatRefs = useRef<Map<number, ChatHandle>>(new Map())
 
   function handleSelect(websiteEntryId: number, websiteUrl: string) {
     setSelected({ websiteEntryId, websiteUrl })
@@ -27,6 +28,13 @@ export default function Dashboard() {
   function handleAiMessage() {
     setDiagnosticRefreshKey(k => k + 1)
     setWebsiteListRefreshKey(k => k + 1)
+  }
+
+  function handleFix(shortDesc: string, fullDesc: string) {
+    if (!selected) return
+    chatRefs.current.get(selected.websiteEntryId)?.sendFix(
+      `Fix the following diagnostic issue:\n\n**${shortDesc}**\n\n${fullDesc}`
+    )
   }
 
   return (
@@ -48,13 +56,18 @@ export default function Dashboard() {
         ) : (
           visitedEntries.map(entry => (
             <div key={entry.websiteEntryId} className={`flex-1 min-h-0 flex flex-col ${selected.websiteEntryId !== entry.websiteEntryId ? "hidden" : ""}`}>
-              <Chat websiteEntryId={entry.websiteEntryId} websiteUrl={entry.websiteUrl} onAiMessage={handleAiMessage} />
+              <Chat
+                ref={el => { if (el) chatRefs.current.set(entry.websiteEntryId, el); else chatRefs.current.delete(entry.websiteEntryId) }}
+                websiteEntryId={entry.websiteEntryId}
+                websiteUrl={entry.websiteUrl}
+                onAiMessage={handleAiMessage}
+              />
             </div>
           ))
         )}
       </div>
       <div className="p-4 overflow-y-auto border-l border-slate-200">
-        {selected !== null && <DiagnosticList websiteEntryId={selected.websiteEntryId} refreshKey={diagnosticRefreshKey} onDiagnosticChange={handleDiagnosticChange} />}
+        {selected !== null && <DiagnosticList websiteEntryId={selected.websiteEntryId} refreshKey={diagnosticRefreshKey} onDiagnosticChange={handleDiagnosticChange} onFix={handleFix} />}
       </div>
     </div>
   )

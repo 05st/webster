@@ -174,7 +174,7 @@ def get_messages(request: Request, website_entry_id: int) -> list[MessageRespons
     return [MessageResponse(role=m.role, content=m.content) for m in msgs]
 
 @api.post("/messages/send")
-async def send_message(request: Request, website_entry_id: int, body: SendMessageRequest):
+async def send_message(request: Request, website_entry_id: int, is_fix_action: bool, body: SendMessageRequest):
     user_id = get_current_user_id(request)
     with Session(engine) as session:
         entry = get_owned_entry(session, user_id, website_entry_id)
@@ -201,7 +201,7 @@ async def send_message(request: Request, website_entry_id: int, body: SendMessag
     ]
 
     async def event_generator():
-        async for event in run_agent(messages, website_url, repo_name, engine, website_entry_id, github_token):
+        async for event in run_agent(messages, website_url, repo_name, engine, website_entry_id, github_token, is_fix_action):
             if event["type"] == "done":
                 with Session(engine) as session:
                     ai_msg = Message(website_entry_id=website_entry_id, role="ai", content=event["content"])

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
@@ -59,12 +59,19 @@ function toolLabel(name: string): string {
   return TOOL_LABELS[name] ?? `Using ${name.replace(/_/g, " ")}...`
 }
 
-export default function Chat({ websiteEntryId, websiteUrl, onAiMessage }: { websiteEntryId: number; websiteUrl: string; onAiMessage: () => void }) {
+export type ChatHandle = { sendFix: (content: string) => void }
+
+const Chat = forwardRef<ChatHandle, { websiteEntryId: number; websiteUrl: string; onAiMessage: () => void }>(
+function Chat({ websiteEntryId, websiteUrl, onAiMessage }, ref) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [statusText, setStatusText] = useState("")
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  useImperativeHandle(ref, () => ({
+    sendFix: (content: string) => sendMessage(content, true),
+  }))
 
   useEffect(() => {
     fetch(`${BACKEND_API_BASE}/messages?website_entry_id=${websiteEntryId}`, { credentials: "include" })
@@ -76,13 +83,13 @@ export default function Chat({ websiteEntryId, websiteUrl, onAiMessage }: { webs
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  async function sendMessage(content: string) {
+  async function sendMessage(content: string, isFixAction = false) {
     if (!content.trim() || loading) return
     setMessages(prev => [...prev, { role: "human", content }])
     setLoading(true)
     setStatusText("")
 
-    const response = await fetch(`${BACKEND_API_BASE}/messages/send?website_entry_id=${websiteEntryId}`, {
+    const response = await fetch(`${BACKEND_API_BASE}/messages/send?website_entry_id=${websiteEntryId}&is_fix_action=${isFixAction}`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -194,4 +201,6 @@ export default function Chat({ websiteEntryId, websiteUrl, onAiMessage }: { webs
       </div>
     </div>
   )
-}
+})
+
+export default Chat
