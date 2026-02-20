@@ -131,6 +131,7 @@ async def run_agent(messages: list[BaseMessage], website_url: str, repo_name: st
                 "repo_name": repo_name,
                 "is_fix_action": is_fix_action
             },
+            config={"recursion_limit": 100},
             version="v2",
         ):
             kind = event["event"]
