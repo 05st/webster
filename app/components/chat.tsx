@@ -179,10 +179,12 @@ export default function Chat({ websiteEntryId, websiteUrl, onAiMessage }: { webs
           placeholder="Ask something about this website..."
           value={input}
           onChange={e => setInput(e.target.value)}
+          disabled={loading}
           onKeyDown={handleKeyDown}
         />
         <button
           onClick={handleSend}
+          disabled={loading}
           className="px-3 bg-slate-800 hover:bg-slate-700 hover:cursor-pointer transition rounded-lg self-stretch flex items-center justify-center"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
