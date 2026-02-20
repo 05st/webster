@@ -41,10 +41,29 @@ const mdComponentsAI = {
   hr: () => <hr className="border-slate-200 my-2" />,
 }
 
+const TOOL_LABELS: Record<string, string> = {
+  open_page: "Opening browser...",
+  click_element: "Clicking element...",
+  type_into: "Typing into field...",
+  press_key: "Pressing key...",
+  wait_for_selector: "Waiting for element...",
+  get_current_page_text: "Reading page content...",
+  get_current_page_url: "Checking current URL...",
+  fetch_page: "Fetching page...",
+  get_page_metadata: "Reading page metadata...",
+  get_page_speed: "Running performance audit...",
+  submit_diagnostic: "Submitting diagnostic...",
+}
+
+function toolLabel(name: string): string {
+  return TOOL_LABELS[name] ?? `Using ${name.replace(/_/g, " ")}...`
+}
+
 export default function Chat({ websiteEntryId, websiteUrl, onAiMessage }: { websiteEntryId: number; websiteUrl: string; onAiMessage: () => void }) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
+  const [statusText, setStatusText] = useState("")
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -57,22 +76,49 @@ export default function Chat({ websiteEntryId, websiteUrl, onAiMessage }: { webs
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  function sendMessage(content: string) {
+  async function sendMessage(content: string) {
     if (!content.trim() || loading) return
     setMessages(prev => [...prev, { role: "human", content }])
     setLoading(true)
-    fetch(`${BACKEND_API_BASE}/messages/send?website_entry_id=${websiteEntryId}`, {
+    setStatusText("")
+
+    const response = await fetch(`${BACKEND_API_BASE}/messages/send?website_entry_id=${websiteEntryId}`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content }),
     })
-      .then(res => res.json())
-      .then((reply: Message) => {
-        setMessages(prev => [...prev, reply])
-        setLoading(false)
-        onAiMessage()
-      })
+
+    if (!response.body) { setLoading(false); return }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ""
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const parts = buffer.split("\n\n")
+      buffer = parts.pop() ?? ""
+      for (const part of parts) {
+        const line = part.trim()
+        if (!line.startsWith("data: ")) continue
+        try {
+          const event = JSON.parse(line.slice(6))
+          if (event.type === "tool_start") {
+            setStatusText(toolLabel(event.tool))
+          } else if (event.type === "done") {
+            setMessages(prev => [...prev, { role: "ai", content: event.content }])
+            setLoading(false)
+            setStatusText("")
+            onAiMessage()
+          }
+        } catch { /* ignore malformed events */ }
+      }
+    }
+
+    setLoading(false)
   }
 
   function handleSend() {
@@ -115,10 +161,13 @@ export default function Chat({ websiteEntryId, websiteUrl, onAiMessage }: { webs
           </div>
         ))}
         {loading && (
-          <div className="bg-slate-100 self-start mr-8 ml-2 px-4 py-3 rounded-lg flex gap-1.5 items-center">
-            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
+          <div className="bg-slate-100 self-start mr-8 ml-2 px-4 py-3 rounded-lg flex flex-col gap-1.5">
+            <div className="flex gap-1.5 items-center">
+              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
+            </div>
+            {statusText && <p className="text-xs text-slate-400">{statusText}</p>}
           </div>
         )}
         <div ref={bottomRef} />

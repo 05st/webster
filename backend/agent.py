@@ -77,7 +77,7 @@ conclude_prompt = ChatPromptTemplate([
     MessagesPlaceholder("messages")
 ])
 
-async def run_agent(messages: list[BaseMessage], website_url: str, repo_name: str, db_engine: Engine, website_entry_id: int, github_token: str) -> str:
+async def run_agent(messages: list[BaseMessage], website_url: str, repo_name: str, db_engine: Engine, website_entry_id: int, github_token: str):
     tools, cleanup = await get_tools(db_engine, website_entry_id, github_token)
 
     llm_analyze = ChatOpenAI(model="gpt-5.2").bind_tools(tools)
@@ -113,13 +113,22 @@ async def run_agent(messages: list[BaseMessage], website_url: str, repo_name: st
     graph.add_edge("conclude", END)
 
     agent = graph.compile()
+    conclusion = ""
     try:
-        result = await agent.ainvoke({
-            "messages": messages,
-            "website_url": website_url,
-            "repo_name": repo_name,
-        })
+        async for event in agent.astream_events(
+            {
+                "messages": messages,
+                "website_url": website_url,
+                "repo_name": repo_name,
+            },
+            version="v2",
+        ):
+            kind = event["event"]
+            if kind == "on_tool_start":
+                yield {"type": "tool_start", "tool": event["name"]}
+            elif kind == "on_chain_end" and event.get("name") == "LangGraph":
+                output = event["data"].get("output", {})
+                conclusion = output.get("conclusion", "")
+        yield {"type": "done", "content": conclusion}
     finally:
         await cleanup()
-
-    return result["conclusion"]
