@@ -39,6 +39,10 @@ analyze_prompt = ChatPromptTemplate([
         PR for the provided GitHub repository with the changes, and a proper description of the
         issue and the changes.
 
+        For ALL GitHub write operations (creating branches, committing files, opening PRs) you MUST
+        use ONLY these tools: gh_create_branch, gh_create_or_update_file, gh_create_pull_request.
+        Never use GitHub MCP tools for write operations — they are read-only and will always fail.
+
         Think in steps.
         You have browser interaction tools. For dynamic UIs, open a page, click elements, type into fields,
         wait for selectors, and then read the resulting page text/metadata before concluding.

@@ -446,7 +446,8 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str,
         try:
             headers = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github+json"}
             ref_resp = requests.get(f"https://api.github.com/repos/{repo}/branches/{base_branch}", headers=headers, timeout=15)
-            ref_resp.raise_for_status()
+            if not ref_resp.ok:
+                return f"Error getting base branch '{base_branch}' in {repo}: {ref_resp.status_code} {ref_resp.text}"
             sha = ref_resp.json()["commit"]["sha"]
             create_resp = requests.post(
                 f"https://api.github.com/repos/{repo}/git/refs",
@@ -454,7 +455,8 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str,
                 json={"ref": f"refs/heads/{branch}", "sha": sha},
                 timeout=15,
             )
-            create_resp.raise_for_status()
+            if not create_resp.ok:
+                return f"Error creating branch '{branch}' in {repo}: {create_resp.status_code} {create_resp.text}"
             logger.info("Tool gh_create_branch success repo=%s branch=%s", repo, branch)
             return f"Branch '{branch}' created from '{base_branch}' in {repo}."
         except Exception as e:
