@@ -445,9 +445,9 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str,
         logger.info("Tool gh_create_branch start repo=%s branch=%s base=%s", repo, branch, base_branch)
         try:
             headers = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github+json"}
-            ref_resp = requests.get(f"https://api.github.com/repos/{repo}/git/ref/heads/{base_branch}", headers=headers, timeout=15)
+            ref_resp = requests.get(f"https://api.github.com/repos/{repo}/branches/{base_branch}", headers=headers, timeout=15)
             ref_resp.raise_for_status()
-            sha = ref_resp.json()["object"]["sha"]
+            sha = ref_resp.json()["commit"]["sha"]
             create_resp = requests.post(
                 f"https://api.github.com/repos/{repo}/git/refs",
                 headers=headers,
