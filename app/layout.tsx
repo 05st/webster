@@ -18,6 +18,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Webster",
   description: "The all-in-one website quality assurance engineer",
+  alternates: {
+    canonical: "https://webster.stimsina.com/",
+  },
   icons: {
     icon: [
       { url: favicon16.src, sizes: "16x16", type: "image/png" },
