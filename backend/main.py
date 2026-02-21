@@ -251,7 +251,7 @@ def update_verification_settings(request: Request, website_entry_id: int, body: 
                 settings.github_webhook_id = webhook_id
                 settings.github_webhook_secret = webhook_secret
             except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Failed to register GitHub webhook: {e}. Ensure your token has the 'admin:repo_hook' scope.")
+                raise HTTPException(status_code=400, detail=f"Failed to register GitHub webhook: {e}.")
         elif was_enabled and not body.enabled and settings.github_webhook_id:
             try:
                 deregister_github_webhook(entry.repo_name, settings.github_webhook_id, user.github_token)
