@@ -3,6 +3,8 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import Button from "./button"
+import VerificationSettings from "./verification-settings"
 
 type Message = { role: "human" | "ai"; content: string; isFixAction?: boolean }
 const BACKEND_API_BASE = "/api/backend"
@@ -63,6 +65,7 @@ export type ChatHandle = { sendFix: (content: string) => void }
 
 const Chat = forwardRef<ChatHandle, { websiteEntryId: number; websiteUrl: string; onAiMessage: () => void }>(
 function Chat({ websiteEntryId, websiteUrl, onAiMessage }, ref) {
+  const [tab, setTab] = useState<"chat" | "verification">("chat")
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -150,14 +153,31 @@ function Chat({ websiteEntryId, websiteUrl, onAiMessage }, ref) {
           <path d="M8.5 14.5q3.5 3 7 0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
         <span className="truncate flex-1"><span className="text-slate-400">Chatting with Webster about </span><span className="text-slate-700">{websiteUrl}</span></span>
-        <button
-          onClick={() => sendMessage("Analyze this website for issues.")}
-          disabled={loading}
-          className="shrink-0 text-xs px-2 py-1 bg-slate-800 text-white rounded hover:bg-slate-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Analyze
-        </button>
+        {tab === "chat" && (
+          <Button
+            onClick={() => sendMessage("Analyze this website for issues.")}
+            disabled={loading}
+            className="shrink-0 text-xs px-2 py-1 bg-slate-800 text-white hover:bg-slate-700"
+          >
+            Analyze
+          </Button>
+        )}
       </div>
+      <div className="flex bg-slate-50 border-b border-slate-200">
+        {([["chat", "Chat"], ["verification", "Verification"]] as const).map(([t, label]) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-2 text-xs font-medium border-b-2 transition ${tab === t ? "border-slate-800 text-slate-800" : "border-transparent text-slate-400 hover:text-slate-600"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === "verification" ? (
+        <VerificationSettings websiteEntryId={websiteEntryId} />
+      ) : (
+      <>
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 pr-2">
         {messages.map((msg, i) => (
           <div key={i} className={`flex flex-col gap-0.5 ${msg.role === "human" ? "items-end ml-8 mt-2 mb-2" : "items-start ml-2 mr-8"}`}>
@@ -206,6 +226,8 @@ function Chat({ websiteEntryId, websiteUrl, onAiMessage }, ref) {
           </svg>
         </button>
       </div>
+      </>
+      )}
     </div>
   )
 })

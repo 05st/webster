@@ -26,6 +26,17 @@ class Diagnostic(SQLModel, table=True):
     severity: str = Field(default="warning")
     dismissed: bool = Field(default=False)
 
+class VerificationSettings(SQLModel, table=True):
+    id: int = Field(primary_key=True)
+    website_entry_id: int = Field(foreign_key="websiteentry.id", unique=True)
+    enabled: bool = Field(default=False)
+    min_severity: str = Field(default="error")
+    auto_fix: bool = Field(default=False)
+    paths_in_scope: str = Field(default="")
+    webhook_url: str = Field(default="")
+    webhook_auth_header_key: str = Field(default="")
+    webhook_auth_header_value: str = Field(default="")
+
 class MessageResponse(BaseModel):
     role: str
     content: str
@@ -48,3 +59,21 @@ class DiagnosticResponse(BaseModel):
 class MeResponse(BaseModel):
     userId: int
     githubId: int
+
+class VerificationSettingsResponse(BaseModel):
+    enabled: bool
+    minSeverity: str
+    autoFix: bool
+    pathsInScope: str
+    webhookUrl: str
+    webhookAuthHeaderKey: str
+    webhookAuthHeaderValue: str
+
+class UpdateVerificationSettingsRequest(BaseModel):
+    enabled: bool
+    minSeverity: str
+    autoFix: bool
+    pathsInScope: str
+    webhookUrl: str
+    webhookAuthHeaderKey: str
+    webhookAuthHeaderValue: str

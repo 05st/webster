@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import Button from "./button"
-import Card from "./card";
+import Card from "./card"
+import Input from "./input"
 
 const BACKEND_API_BASE = "/api/backend"
 
@@ -44,20 +45,8 @@ export default function AddEntryForm({ onAdd }: { onAdd: (websiteEntryId: number
   return (
     <Card>
       <form className="flex flex-col gap-2" onSubmit={handleSubmit}>
-        <input
-          type="url"
-          placeholder="Website URL"
-          className="bg-white border border-slate-300 rounded-lg p-2 text-sm w-full outline-none focus:border-slate-500 transition placeholder:text-slate-400"
-          value={url}
-          onChange={e => setUrl(e.target.value)}
-        />
-        <input
-          list="repos"
-          placeholder="GitHub Repository (user/repo)"
-          className="bg-white border border-slate-300 rounded-lg p-2 text-sm w-full outline-none focus:border-slate-500 transition placeholder:text-slate-400"
-          value={repo}
-          onChange={e => setRepo(e.target.value)}
-        />
+        <Input type="url" placeholder="Website URL" value={url} onChange={e => setUrl(e.target.value)} />
+        <Input list="repos" placeholder="GitHub Repository (user/repo)" value={repo} onChange={e => setRepo(e.target.value)} />
         <datalist id="repos">
           {repos.map(repo => (
             <option key={repo} value={repo} />

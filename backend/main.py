@@ -221,6 +221,46 @@ def get_diagnostics(request: Request, website_entry_id: int) -> list[DiagnosticR
         ).all()
     return [DiagnosticResponse(diagnosticId=i.id, shortDesc=i.short_desc, fullDesc=i.full_desc, severity=i.severity) for i in diagnostics]
 
+@api.get("/verification-settings")
+def get_verification_settings(request: Request, website_entry_id: int) -> VerificationSettingsResponse:
+    user_id = get_current_user_id(request)
+    with Session(engine) as session:
+        get_owned_entry(session, user_id, website_entry_id)
+        settings = session.exec(
+            select(VerificationSettings).where(VerificationSettings.website_entry_id == website_entry_id)
+        ).first()
+        if not settings:
+            settings = VerificationSettings(website_entry_id=website_entry_id)
+    return VerificationSettingsResponse(
+        enabled=settings.enabled,
+        minSeverity=settings.min_severity,
+        autoFix=settings.auto_fix,
+        pathsInScope=settings.paths_in_scope,
+        webhookUrl=settings.webhook_url,
+        webhookAuthHeaderKey=settings.webhook_auth_header_key,
+        webhookAuthHeaderValue=settings.webhook_auth_header_value,
+    )
+
+@api.put("/verification-settings")
+def update_verification_settings(request: Request, website_entry_id: int, body: UpdateVerificationSettingsRequest) -> None:
+    user_id = get_current_user_id(request)
+    with Session(engine) as session:
+        get_owned_entry(session, user_id, website_entry_id)
+        settings = session.exec(
+            select(VerificationSettings).where(VerificationSettings.website_entry_id == website_entry_id)
+        ).first()
+        if not settings:
+            settings = VerificationSettings(website_entry_id=website_entry_id)
+            session.add(settings)
+        settings.enabled = body.enabled
+        settings.min_severity = body.minSeverity
+        settings.auto_fix = body.autoFix
+        settings.paths_in_scope = body.pathsInScope
+        settings.webhook_url = body.webhookUrl
+        settings.webhook_auth_header_key = body.webhookAuthHeaderKey
+        settings.webhook_auth_header_value = body.webhookAuthHeaderValue
+        session.commit()
+
 @api.delete("/diagnostics/{diagnostic_id}")
 def dismiss_diagnostic(request: Request, diagnostic_id: int) -> None:
     user_id = get_current_user_id(request)
