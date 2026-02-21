@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 from sqlmodel import Field, SQLModel
 
@@ -36,6 +37,9 @@ class VerificationSettings(SQLModel, table=True):
     webhook_url: str = Field(default="")
     webhook_auth_header_key: str = Field(default="")
     webhook_auth_header_value: str = Field(default="")
+    trigger_keyword: str = Field(default="[webster]")
+    github_webhook_id: Optional[int] = Field(default=None, nullable=True)
+    github_webhook_secret: str = Field(default="")
 
 class MessageResponse(BaseModel):
     role: str
@@ -68,6 +72,7 @@ class VerificationSettingsResponse(BaseModel):
     webhookUrl: str
     webhookAuthHeaderKey: str
     webhookAuthHeaderValue: str
+    triggerKeyword: str
 
 class UpdateVerificationSettingsRequest(BaseModel):
     enabled: bool
@@ -77,3 +82,4 @@ class UpdateVerificationSettingsRequest(BaseModel):
     webhookUrl: str
     webhookAuthHeaderKey: str
     webhookAuthHeaderValue: str
+    triggerKeyword: str

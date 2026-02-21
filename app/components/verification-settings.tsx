@@ -15,6 +15,7 @@ type Settings = {
   webhookUrl: string
   webhookAuthHeaderKey: string
   webhookAuthHeaderValue: string
+  triggerKeyword: string
 }
 
 const defaultSettings: Settings = {
@@ -25,6 +26,7 @@ const defaultSettings: Settings = {
   webhookUrl: "",
   webhookAuthHeaderKey: "",
   webhookAuthHeaderValue: "",
+  triggerKeyword: "[webster]",
 }
 
 function SettingRow({ label, description, children }: { label: string; description: string; children: ReactNode }) {
@@ -66,9 +68,32 @@ export default function VerificationSettings({ websiteEntryId }: { websiteEntryI
   return (
     <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-5 p-4">
 
+      <div className="flex gap-2.5 p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0 mt-0.5 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+        </svg>
+        <div className="flex flex-col gap-1">
+          <p>When enabled, Webster registers a webhook on your linked GitHub repository. Every push is checked — if any commit message contains the trigger keyword, the site is automatically analyzed.</p>
+          <p>New diagnostics meeting the severity threshold will fire the notification webhook. If auto-fix is on, Webster will also open a pull request with fixes.</p>
+        </div>
+      </div>
+
       <SettingRow label="Enable continuous verification" description="Runs when a commit message contains a trigger keyword">
         <Toggle value={settings.enabled} onChange={v => setSettings(s => ({ ...s, enabled: v }))} />
       </SettingRow>
+
+      <hr className="border-slate-100" />
+
+      <div className="flex flex-col gap-1.5">
+        <p className="text-sm font-medium text-slate-800">Trigger keyword</p>
+        <p className="text-xs text-slate-500">Verification runs when a commit message contains this text</p>
+        <Input
+          className="text-xs px-2 py-1.5 rounded font-mono"
+          value={settings.triggerKeyword}
+          onChange={e => setSettings(s => ({ ...s, triggerKeyword: e.target.value }))}
+          placeholder="[webster]"
+        />
+      </div>
 
       <hr className="border-slate-100" />
 
