@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lh:collect": "lhci collect --url=http://localhost:3000/ --numberOfRuns=3",
+    "lh:assert": "lhci assert",
+    "lhci": "lhci autorun"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
@@ -18,6 +21,7 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.15.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
