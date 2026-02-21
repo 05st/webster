@@ -6,7 +6,7 @@ import remarkGfm from "remark-gfm"
 import Button from "./button"
 import VerificationSettings from "./verification-settings"
 
-type Message = { role: "human" | "ai"; content: string; isFixAction?: boolean }
+type Message = { role: "human" | "ai"; content: string; isFixAction?: boolean; isAutomated?: boolean }
 const BACKEND_API_BASE = "/api/backend"
 
 const mdComponentsHuman = {
@@ -79,6 +79,7 @@ function Chat({ websiteEntryId, websiteUrl, onAiMessage }, ref) {
   useEffect(() => {
     fetch(`${BACKEND_API_BASE}/messages?website_entry_id=${websiteEntryId}`, { credentials: "include" })
       .then(res => res.json())
+      .then((msgs: any[]) => msgs.map(m => ({ ...m, isFixAction: m.is_fix_action, isAutomated: m.is_automated })))
       .then(setMessages)
   }, [websiteEntryId])
 
@@ -181,12 +182,20 @@ function Chat({ websiteEntryId, websiteUrl, onAiMessage }, ref) {
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2 pr-2">
         {messages.map((msg, i) => (
           <div key={i} className={`flex flex-col gap-0.5 ${msg.role === "human" ? "items-end ml-8 mt-2 mb-2" : "items-start ml-2 mr-8"}`}>
+            {msg.isAutomated && !msg.isFixAction && (
+              <div className={`flex items-center gap-1 text-xs text-blue-400 ${msg.role === "human" ? "mr-1" : "ml-2"}`}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M9 11a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m6 0a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2z"/>
+                </svg>
+                <span>Automated</span>
+              </div>
+            )}
             {msg.isFixAction && (
               <div className={`flex items-center gap-1 text-xs text-amber-500 ${msg.role === "human" ? "mr-1" : "ml-2"}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/>
                 </svg>
-                <span>Fix action</span>
+                <span>{msg.isAutomated ? "Automated fix" : "Fix action"}</span>
               </div>
             )}
             <div className={`p-3 text-sm ${msg.role === "human" ? "bg-slate-800 text-white rounded-lg" : "bg-slate-100 text-slate-800 rounded-lg"}`}>

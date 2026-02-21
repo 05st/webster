@@ -15,6 +15,7 @@ type Settings = {
   webhookUrl: string
   webhookAuthHeaderKey: string
   webhookAuthHeaderValue: string
+  webhookFormat: string
   triggerKeyword: string
 }
 
@@ -26,6 +27,7 @@ const defaultSettings: Settings = {
   webhookUrl: "",
   webhookAuthHeaderKey: "",
   webhookAuthHeaderValue: "",
+  webhookFormat: "json",
   triggerKeyword: "[webster]",
 }
 
@@ -150,20 +152,33 @@ export default function VerificationSettings({ websiteEntryId }: { websiteEntryI
           placeholder="https://hooks.slack.com/..."
         />
         {settings.webhookUrl && (
-          <div className="flex gap-2">
-            <Input
-              className="text-xs px-2 py-1.5 rounded"
-              value={settings.webhookAuthHeaderKey}
-              onChange={e => setSettings(s => ({ ...s, webhookAuthHeaderKey: e.target.value }))}
-              placeholder="Header name (e.g. Authorization)"
-            />
-            <Input
-              className="text-xs px-2 py-1.5 rounded"
-              value={settings.webhookAuthHeaderValue}
-              onChange={e => setSettings(s => ({ ...s, webhookAuthHeaderValue: e.target.value }))}
-              placeholder="Header value (e.g. Bearer ...)"
-            />
-          </div>
+          <>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-slate-500">Format</p>
+              <select
+                value={settings.webhookFormat}
+                onChange={e => setSettings(s => ({ ...s, webhookFormat: e.target.value }))}
+                className="text-xs border border-slate-300 rounded px-2 py-1.5 bg-white text-slate-800 focus:outline-none focus:border-slate-500"
+              >
+                <option value="json">Generic JSON</option>
+                <option value="discord">Discord</option>
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                className="text-xs px-2 py-1.5 rounded"
+                value={settings.webhookAuthHeaderKey}
+                onChange={e => setSettings(s => ({ ...s, webhookAuthHeaderKey: e.target.value }))}
+                placeholder="Header name (e.g. Authorization)"
+              />
+              <Input
+                className="text-xs px-2 py-1.5 rounded"
+                value={settings.webhookAuthHeaderValue}
+                onChange={e => setSettings(s => ({ ...s, webhookAuthHeaderValue: e.target.value }))}
+                placeholder="Header value (e.g. Bearer ...)"
+              />
+            </div>
+          </>
         )}
       </div>
 

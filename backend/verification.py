@@ -59,6 +59,7 @@ async def run_verification(entry_id: int, github_token: str, engine: Engine) -> 
         notif_url = settings.webhook_url
         notif_auth_key = settings.webhook_auth_header_key
         notif_auth_value = settings.webhook_auth_header_value
+        webhook_format = settings.webhook_format
 
         existing_ids = {
             d.id for d in session.exec(
@@ -74,7 +75,7 @@ async def run_verification(entry_id: int, github_token: str, engine: Engine) -> 
 
     trigger_content = "Automated verification: analyze this website for issues."
     with Session(engine) as session:
-        session.add(Message(website_entry_id=entry_id, role="human", content=trigger_content))
+        session.add(Message(website_entry_id=entry_id, role="human", content=trigger_content, is_automated=True))
         session.commit()
     message_history.append(HumanMessage(trigger_content))
 
@@ -83,7 +84,7 @@ async def run_verification(entry_id: int, github_token: str, engine: Engine) -> 
         if event["type"] == "done":
             ai_response = event["content"]
     with Session(engine) as session:
-        session.add(Message(website_entry_id=entry_id, role="ai", content=ai_response))
+        session.add(Message(website_entry_id=entry_id, role="ai", content=ai_response, is_automated=True))
         session.commit()
 
     with Session(engine) as session:
@@ -100,14 +101,15 @@ async def run_verification(entry_id: int, github_token: str, engine: Engine) -> 
         headers = {"Content-Type": "application/json"}
         if notif_auth_key and notif_auth_value:
             headers[notif_auth_key] = notif_auth_value
+        discord_colors = {"error": 0xE74C3C, "warning": 0xFF8C00, "info": 0x3498DB}
+        discord_icons = {"error": "🔴", "warning": "🟡", "info": "🔵"}
         for short_desc, full_desc, severity in new_diags:
             try:
-                requests.post(
-                    notif_url,
-                    json={"event": "diagnostic_alert", "website": website_url, "diagnostic": {"severity": severity, "short_desc": short_desc, "full_desc": full_desc}},
-                    headers=headers,
-                    timeout=10,
-                )
+                if webhook_format == "discord":
+                    payload = {"embeds": [{"title": f"{discord_icons.get(severity, '⚪')} {short_desc}", "description": full_desc, "color": discord_colors.get(severity, 0x7F8C8D), "fields": [{"name": "Severity", "value": severity.upper(), "inline": True}, {"name": "Website", "value": website_url, "inline": True}]}]}
+                else:
+                    payload = {"event": "diagnostic_alert", "website": website_url, "diagnostic": {"severity": severity, "short_desc": short_desc, "full_desc": full_desc}}
+                requests.post(notif_url, json=payload, headers=headers, timeout=10)
             except Exception:
                 pass
 
@@ -121,7 +123,7 @@ async def run_verification(entry_id: int, github_token: str, engine: Engine) -> 
                 fix_history = [
                     AIMessage(m.content) if m.role == "ai" else HumanMessage(m.content) for m in msgs
                 ]
-                session.add(Message(website_entry_id=entry_id, role="human", content=fix_content))
+                session.add(Message(website_entry_id=entry_id, role="human", content=fix_content, is_automated=True, is_fix_action=True))
                 session.commit()
             fix_history.append(HumanMessage(fix_content))
 
@@ -130,5 +132,5 @@ async def run_verification(entry_id: int, github_token: str, engine: Engine) -> 
                 if event["type"] == "done":
                     fix_response = event["content"]
             with Session(engine) as session:
-                session.add(Message(website_entry_id=entry_id, role="ai", content=fix_response))
+                session.add(Message(website_entry_id=entry_id, role="ai", content=fix_response, is_automated=True, is_fix_action=True))
                 session.commit()

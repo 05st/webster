@@ -13,7 +13,7 @@ from models import *
 
 logger = logging.getLogger(__name__)
 
-async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str, is_fix_action: bool) -> tuple[list[BaseTool], Callable]:
+async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str, is_fix_action: bool, website_url: str = "") -> tuple[list[BaseTool], Callable]:
     logger.info("Initializing agent tools for website_entry_id=%s", website_entry_id)
 
     pw = await async_playwright().start()
@@ -35,6 +35,15 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str,
         website_entry_id,
         len(github_tools),
     )
+
+    from urllib.parse import urlparse
+    website_host = urlparse(website_url).hostname or ""
+
+    def _block_off_domain(url: str) -> str | None:
+        host = urlparse(url).hostname or ""
+        if website_host and host != website_host and not host.endswith("." + website_host):
+            return f"Error: browser tools are restricted to {website_host}. Cannot access {url}."
+        return None
 
     def compact_visible_text(text: str, max_chars: int = 8000) -> str:
         lines = [line for line in text.splitlines() if line.strip()]
@@ -64,6 +73,8 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str,
         Returns:
             The loaded URL and page title, or an error message.
         """
+        if err := _block_off_domain(url):
+            return err
         start = time.time()
         logger.info("Tool open_page start website_entry_id=%s url=%s", website_entry_id, url)
         page = await ensure_interactive_page()
@@ -293,6 +304,8 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str,
         Returns:
             The visible text content of the page, or an error message.
         """
+        if err := _block_off_domain(url):
+            return err
         start = time.time()
         logger.info("Tool fetch_page start website_entry_id=%s url=%s", website_entry_id, url)
         page = await browser_context.new_page()
@@ -328,6 +341,9 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str,
         Returns:
             A summary of the page's metadata, or an error message.
         """
+        if url:
+            if err := _block_off_domain(url):
+                return err
         start = time.time()
         logger.info("Tool get_page_metadata start website_entry_id=%s url=%s", website_entry_id, url or "<current>")
         page = await ensure_interactive_page()

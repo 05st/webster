@@ -139,7 +139,7 @@ def get_messages(request: Request, website_entry_id: int) -> list[MessageRespons
     with Session(engine) as session:
         get_owned_entry(session, user_id, website_entry_id)
         msgs = session.exec(select(Message).where(Message.website_entry_id == website_entry_id)).all()
-    return [MessageResponse(role=m.role, content=m.content) for m in msgs]
+    return [MessageResponse(role=m.role, content=m.content, is_automated=m.is_automated, is_fix_action=m.is_fix_action) for m in msgs]
 
 
 @api.post("/messages/send")
@@ -222,6 +222,7 @@ def get_verification_settings(request: Request, website_entry_id: int) -> Verifi
         webhookAuthHeaderKey=settings.webhook_auth_header_key,
         webhookAuthHeaderValue=settings.webhook_auth_header_value,
         triggerKeyword=settings.trigger_keyword,
+        webhookFormat=settings.webhook_format,
     )
 
 
@@ -248,6 +249,7 @@ def update_verification_settings(request: Request, website_entry_id: int, body: 
         settings.webhook_auth_header_key = body.webhookAuthHeaderKey
         settings.webhook_auth_header_value = body.webhookAuthHeaderValue
         settings.trigger_keyword = body.triggerKeyword
+        settings.webhook_format = body.webhookFormat
 
         if not was_enabled and body.enabled:
             try:

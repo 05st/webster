@@ -92,7 +92,7 @@ conclude_prompt = ChatPromptTemplate([
 ])
 
 async def run_agent(messages: list[BaseMessage], website_url: str, repo_name: str, db_engine: Engine, website_entry_id: int, github_token: str, is_fix_action: bool):
-    tools, cleanup = await get_tools(db_engine, website_entry_id, github_token, is_fix_action)
+    tools, cleanup = await get_tools(db_engine, website_entry_id, github_token, is_fix_action, website_url)
 
     llm_analyze = ChatOpenAI(model="gpt-5.2").bind_tools(tools)
     llm_conclude = ChatOpenAI(model="gpt-5.2")
@@ -137,7 +137,7 @@ async def run_agent(messages: list[BaseMessage], website_url: str, repo_name: st
                 "repo_name": repo_name,
                 "is_fix_action": is_fix_action
             },
-            config={"recursion_limit": 100},
+            config={"recursion_limit": 50},
             version="v2",
         ):
             kind = event["event"]

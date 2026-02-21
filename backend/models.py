@@ -18,6 +18,8 @@ class Message(SQLModel, table=True):
     website_entry_id: int = Field(foreign_key="websiteentry.id")
     role: str  # "ai" or "human"
     content: str
+    is_automated: bool = Field(default=False)
+    is_fix_action: bool = Field(default=False)
 
 class Diagnostic(SQLModel, table=True):
     id: int = Field(primary_key=True)
@@ -40,10 +42,13 @@ class VerificationSettings(SQLModel, table=True):
     trigger_keyword: str = Field(default="[webster]")
     github_webhook_id: Optional[int] = Field(default=None, nullable=True)
     github_webhook_secret: str = Field(default="")
+    webhook_format: str = Field(default="json")
 
 class MessageResponse(BaseModel):
     role: str
     content: str
+    is_automated: bool = False
+    is_fix_action: bool = False
 
 class SendMessageRequest(BaseModel):
     content: str
@@ -73,6 +78,7 @@ class VerificationSettingsResponse(BaseModel):
     webhookAuthHeaderKey: str
     webhookAuthHeaderValue: str
     triggerKeyword: str
+    webhookFormat: str
 
 class UpdateVerificationSettingsRequest(BaseModel):
     enabled: bool
@@ -83,3 +89,4 @@ class UpdateVerificationSettingsRequest(BaseModel):
     webhookAuthHeaderKey: str
     webhookAuthHeaderValue: str
     triggerKeyword: str
+    webhookFormat: str
