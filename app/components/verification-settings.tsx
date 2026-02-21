@@ -184,7 +184,14 @@ export default function VerificationSettings({ websiteEntryId }: { websiteEntryI
 
       <div className="mt-auto flex items-center justify-end gap-3 pt-2">
         {saved && <span className="text-xs text-green-600">Saved</span>}
-        {saveError && <span className="text-xs text-red-600">{saveError}</span>}
+        {saveError && (
+          <span className="text-xs text-red-600">
+            {saveError}
+            {saveError.includes("accessible by integration") && (
+              <> — <a href={`https://github.com/apps/${process.env.NEXT_PUBLIC_GITHUB_APP_SLUG}/installations/new`} target="_blank" rel="noreferrer" className="underline">Install the GitHub App</a></>
+            )}
+          </span>
+        )}
         <Button
           onClick={save}
           disabled={saving}
