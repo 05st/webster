@@ -45,8 +45,12 @@ def integrations_github_oauth2_callback(code: str) -> RedirectResponse:
         "client_id": GITHUB_CLIENT_ID,
         "client_secret": GITHUB_CLIENT_SECRET,
         "code": code,
+        "redirect_uri": f"{FRONTEND_ORIGIN}/api/backend/integrations/github/oauth2/callback",
     }, headers={"Accept": "application/json"})
-    access_token = response.json()["access_token"]
+    data = response.json()
+    if "access_token" not in data:
+        raise HTTPException(status_code=400, detail=f"GitHub token exchange failed: {data}")
+    access_token = data["access_token"]
 
     github_user = requests.get("https://api.github.com/user", headers={
         "Authorization": f"Bearer {access_token}"
