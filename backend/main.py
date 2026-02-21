@@ -102,6 +102,24 @@ def get_github_repos(request: Request) -> list[str]:
     return [repo["full_name"] for repo in repos]
 
 
+@api.get("/github/app-installed")
+def get_github_app_installed(request: Request) -> dict:
+    user_id = get_current_user_id(request)
+    with Session(engine) as session:
+        user = get_user(session, user_id)
+    if not GITHUB_APP_SLUG:
+        return {"installed": True}
+    response = requests.get("https://api.github.com/user/installations", headers={
+        "Authorization": f"Bearer {user.github_token}",
+        "Accept": "application/vnd.github+json",
+    })
+    if not response.ok:
+        return {"installed": False}
+    installations = response.json().get("installations", [])
+    installed = any(inst.get("app_slug") == GITHUB_APP_SLUG for inst in installations)
+    return {"installed": installed}
+
+
 # --- Website entries ---
 
 @api.post("/website-entries/add")

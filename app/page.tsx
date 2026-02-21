@@ -3,16 +3,28 @@
 import { useEffect, useState } from "react"
 import Login from "./login"
 import Dashboard from "./dashboard"
+import GithubAppModal from "./components/github-app-modal"
 
 const BACKEND_API_BASE = "/api/backend"
 type AuthState = "loading" | "authenticated" | "unauthenticated"
 
 export default function Home() {
   const [authState, setAuthState] = useState<AuthState>("loading")
+  const [showInstallModal, setShowInstallModal] = useState(false)
 
   useEffect(() => {
     fetch(`${BACKEND_API_BASE}/me`, { credentials: "include" })
-      .then(res => setAuthState(res.ok ? "authenticated" : "unauthenticated"))
+      .then(res => {
+        if (res.ok) {
+          setAuthState("authenticated")
+          fetch(`${BACKEND_API_BASE}/github/app-installed`, { credentials: "include" })
+            .then(r => r.json())
+            .then(data => { if (!data.installed) setShowInstallModal(true) })
+            .catch(() => {})
+        } else {
+          setAuthState("unauthenticated")
+        }
+      })
       .catch(() => setAuthState("unauthenticated"))
   }, [])
 
@@ -24,5 +36,10 @@ export default function Home() {
     return <Login />
   }
 
-  return <Dashboard />
+  return (
+    <>
+      <Dashboard />
+      {showInstallModal && <GithubAppModal onDismiss={() => setShowInstallModal(false)} />}
+    </>
+  )
 }
