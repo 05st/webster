@@ -45,6 +45,7 @@ export default function VerificationSettings({ websiteEntryId }: { websiteEntryI
   const [settings, setSettings] = useState<Settings>(defaultSettings)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`${BACKEND_API_BASE}/verification-settings?website_entry_id=${websiteEntryId}`, { credentials: "include" })
@@ -54,15 +55,21 @@ export default function VerificationSettings({ websiteEntryId }: { websiteEntryI
 
   async function save() {
     setSaving(true)
-    await fetch(`${BACKEND_API_BASE}/verification-settings?website_entry_id=${websiteEntryId}`, {
+    setSaveError(null)
+    const res = await fetch(`${BACKEND_API_BASE}/verification-settings?website_entry_id=${websiteEntryId}`, {
       method: "PUT",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(settings),
     })
     setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setSaveError(data.detail ?? "Failed to save settings")
+    } else {
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    }
   }
 
   return (
@@ -73,7 +80,7 @@ export default function VerificationSettings({ websiteEntryId }: { websiteEntryI
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
         </svg>
         <div className="flex flex-col gap-1">
-          <p>When enabled, Webster registers a webhook on your linked GitHub repository. Every push is checked — if any commit message contains the trigger keyword, the site is automatically analyzed.</p>
+          <p>When enabled, Webster registers a webhook on your linked GitHub repository. Every push is checked - if any commit message contains the trigger keyword, the site is automatically analyzed.</p>
           <p>New diagnostics meeting the severity threshold will fire the notification webhook. If auto-fix is on, Webster will also open a pull request with fixes.</p>
         </div>
       </div>
@@ -162,6 +169,7 @@ export default function VerificationSettings({ websiteEntryId }: { websiteEntryI
 
       <div className="mt-auto flex items-center justify-end gap-3 pt-2">
         {saved && <span className="text-xs text-green-600">Saved</span>}
+        {saveError && <span className="text-xs text-red-600">{saveError}</span>}
         <Button
           onClick={save}
           disabled={saving}
