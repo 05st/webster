@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://webster.stimsina.com/sitemap.xml
