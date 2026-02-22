@@ -32,7 +32,8 @@ analyze_prompt = ChatPromptTemplate([
         also be a question that the human has about their website. You do not do anything other than
         analyze the website, submit diagnostics, and answer questions related to the website.
         Don't submit diagnostics without a good reason. If you are just speculating, without being
-        very confident, then don't submit a diagnostic.
+        very confident, then don't submit a diagnostic. But if you have any suggestion or issue or warning,
+        make sure to SUBMIT A DIAGNOSTIC!
 
         If `is_fix_action` is true, then you will not be able to submit new diagnostics and instead
         you should fix the diagnostic at hand, described in the human message. You should then open a
@@ -94,7 +95,7 @@ conclude_prompt = ChatPromptTemplate([
 async def run_agent(messages: list[BaseMessage], website_url: str, repo_name: str, db_engine: Engine, website_entry_id: int, github_token: str, is_fix_action: bool):
     tools, cleanup = await get_tools(db_engine, website_entry_id, github_token, is_fix_action, website_url)
 
-    llm_analyze = ChatOpenAI(model="gpt-5.2").bind_tools(tools)
+    llm_analyze = ChatOpenAI(model="gpt-5-mini").bind_tools(tools)
     llm_conclude = ChatOpenAI(model="gpt-5.2")
 
     def analyze(state: AgentState) -> AgentState:
@@ -137,7 +138,7 @@ async def run_agent(messages: list[BaseMessage], website_url: str, repo_name: st
                 "repo_name": repo_name,
                 "is_fix_action": is_fix_action
             },
-            config={"recursion_limit": 50},
+            config={"recursion_limit": 100},
             version="v2",
         ):
             kind = event["event"]
