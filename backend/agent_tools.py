@@ -604,16 +604,22 @@ async def get_tools(db_engine: Engine, website_entry_id: int, github_token: str,
 
     write_tools = [gh_create_branch, gh_create_or_update_file, gh_create_pull_request] if is_fix_action else []
 
-    return [
-        open_page,
-        click_element,
-        type_into,
-        press_key,
-        wait_for_selector,
-        get_current_page_text,
-        get_current_page_url,
-        fetch_page,
-        get_page_metadata,
-        get_page_speed,
-        submit_diagnostic,
-    ] + github_tools + write_tools, cleanup
+    if is_fix_action:
+        browser_tools = [get_page_metadata]
+    else:
+        browser_tools = [
+            open_page,
+            click_element,
+            type_into,
+            press_key,
+            wait_for_selector,
+            get_current_page_text,
+            get_current_page_url,
+            fetch_page,
+            get_page_metadata,
+            get_page_speed,
+        ]
+
+    diagnostic_tools = [] if is_fix_action else [submit_diagnostic]
+
+    return browser_tools + diagnostic_tools + github_tools + write_tools, cleanup
