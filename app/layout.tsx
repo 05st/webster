@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     shortcut: [{ url: favicon32.src, type: "image/png" }],
     apple: [{ url: favicon96.src, sizes: "96x96", type: "image/png" }],
   },
+  alternates: {
+    canonical: "https://webster.stimsina.com/",
+  },
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
