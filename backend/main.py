@@ -96,9 +96,12 @@ def get_github_repos(request: Request) -> list[str]:
     user_id = get_current_user_id(request)
     with Session(engine) as session:
         user = get_user(session, user_id)
-    repos = requests.get("https://api.github.com/user/repos?per_page=100", headers={
+    response = requests.get("https://api.github.com/user/repos?per_page=100", headers={
         "Authorization": f"Bearer {user.github_token}"
-    }).json()
+    })
+    repos = response.json()
+    if not isinstance(repos, list):
+        raise HTTPException(status_code=502, detail=f"GitHub API error: {repos.get('message', 'unknown error')}")
     return [repo["full_name"] for repo in repos]
 
 
