@@ -1,0 +1,5 @@
+User-agent: *
+Disallow:
+
+# Point crawlers to the sitemap (update if your sitemap path changes)
+Sitemap: https://webster.stimsina.com/sitemap.xml
